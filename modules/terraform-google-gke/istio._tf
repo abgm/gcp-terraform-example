@@ -1,0 +1,78 @@
+resource "kubernetes_namespace" "ns-istio" {
+
+  metadata {
+
+    name = "istio-system"
+
+  }
+
+}
+
+resource "helm_repository" "istio" {
+  depends_on = [
+    "kubernetes_cluster_role_binding.tiller"
+  ]
+  name = "istio.io"
+  url = "https://storage.googleapis.com/istio-prerelease/daily-build/master-latest-daily/charts"
+}
+
+resource "helm_release" "istio-init" {
+
+  depends_on = [
+    "kubernetes_namespace.ns-istio",
+    "helm_repository.istio"
+  ]
+
+  name = "istio-init"
+
+  repository = "${helm_repository.istio.name}"
+
+  chart = "istio-init"
+
+  version = "1.1.0"
+
+  timeout = "600"
+
+  namespace = "${kubernetes_namespace.ns-istio.metadata.0.name}"
+
+  values = []
+}
+
+resource "helm_release" "istio" {
+
+  depends_on = [
+    "helm_release.istio-init"
+  ]
+
+  name = "istio"
+
+  repository = "${helm_repository.istio.name}"
+
+  chart = "istio"
+
+  version = "1.1.0"
+
+  timeout = "1200"
+
+  namespace = "${kubernetes_namespace.ns-istio.metadata.0.name}"
+
+  set {
+    name = "grafana.enabled"
+    value = "true"
+  }
+  set {
+    name = "servicegraph.enabled"
+    value = "true"
+  }
+  set {
+    name = "gateways.istio-ingressgateway.type"
+    value = "NodePort"
+  }
+//  set {
+//    name = "gateways.istio-ingressgateway.serviceAnnotations.cloud\\.google\\.com\\/load-balancer-type"
+//    value = "internal"
+//  }
+
+  values = []
+
+}

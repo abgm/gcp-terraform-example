@@ -1,0 +1,68 @@
+{{- define "common.deployment" -}}
+{{- $common := dict "Values" .Values.common -}} 
+{{- $noCommon := omit .Values "common" -}} 
+{{- $overrides := dict "Values" $noCommon -}} 
+{{- $noValues := omit . "Values" -}} 
+{{- with merge $noValues $overrides $common -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "common.name" . }}
+  labels:
+    app.kubernetes.io/name: {{ include "common.name" . }}
+    helm.sh/chart: {{ include "common.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ include "common.name" . }}
+  template:
+    metadata:
+      labels:
+        app: {{ include "common.name" . }}
+    spec:
+      containers:
+      - name: {{ .Chart.Name }}
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        ports:
+        - name: http
+          containerPort: {{ .Values.service.internalPort }}
+        env:
+        - name: POSTGRES_HOST
+          value: {{ .Values.database.url }}
+        - name: POSTGRES_PORT
+          value: "5432"
+        - name: POSTGRES_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.database.secret.name }}
+              key: {{ .Values.database.secret.user }}
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.database.secret.name }}
+              key: {{ .Values.database.secret.password }}
+        - name: POSTGRES_DB
+          value: {{ .Values.database.name }}
+        livenessProbe:
+            httpGet:
+              path: /health
+              port: {{ .Values.service.internalPort }}
+              scheme: HTTP
+            initialDelaySeconds: 130
+            periodSeconds: 30
+            timeoutSeconds: 10
+        readinessProbe:
+            httpGet:
+              path: /health
+              port: {{ .Values.service.internalPort }}
+              scheme: HTTP
+            initialDelaySeconds: 120
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 10
+{{- end -}}
+{{- end -}}
