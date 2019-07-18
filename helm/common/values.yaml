@@ -1,0 +1,29 @@
+# Default values for schema-registry.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 3
+
+image:
+  repository: ""
+  tag: ""
+  pullPolicy: IfNotPresent
+
+nameOverride: ""
+fullnameOverride: ""
+
+service:
+  name: ""
+  type: LoadBalancer
+  externalPort: 80
+  internalPort: ""
+  healthCheckEndpoint: ""
+  loadBalancerIP: ""
+
+database:
+  secret:
+    name: ""
+    user: POSTGRES_USERNAME
+    password: POSTGRES_PASSWORD
+  name: ""
+  url: ""
